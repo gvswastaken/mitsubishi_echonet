@@ -12,28 +12,30 @@ from .eojx import *
 #    - EOJX2 |Class code                      |30   |Home air conditioner class
 #    - EOJX3 |Instance code                   |01   |1
 
+from pprint import pprint
 
 
 class Function:
     def _0EF0D6(edt):
-        data = int.from_bytes(edt, 'big')
-        edtnum = int((data & 0xff000000) / 0x1000000)
-        # number of instances suggest that multiple instances per packet..
-        # this may need a bit of a rethink...
-        eojgc = int((data & 0x00ff0000) / 0x10000)
-        eojcc = int((data & 0x0000ff00) / 0x100)
-        eojci = int(data & 0x000000ff)
+        num_instances = edt[0]
 
-        # do something
-        print("Group: " + EOJX_GROUP[eojgc])
-        print("Code: " + EOJX_CLASS[eojgc][eojcc])
-        print("Instance: " + str(eojci))
+        i = 1
+        instances = []
+        while i < len(edt):
+            eojgc = int(edt[i])
+            eojcc = int(edt[i+1])
+            eojci = int(edt[i+2])
 
-        return {
-          "eojgc": eojgc,
-          "eojcc": eojcc,
-          "eojci": eojci
-        }
+            i += 3
+
+            instances.append({
+                "eojgc": eojgc,
+                "eojcc": eojcc,
+                "eojci": eojci
+            })
+
+        return instances
+
     # Check status of Air Conditioner
     def _013080(edt):
         ops_value = int.from_bytes(edt, 'big')

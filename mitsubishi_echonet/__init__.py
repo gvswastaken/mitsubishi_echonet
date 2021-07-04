@@ -215,13 +215,18 @@ def discover(echonet_class = ""):
         rx['OPC'][0]['EPC'] == 0xd6):
             # Action EDT payload by calling applicable function using lookup table
             edt = EPC_CODE[rx['SEOJGC']][rx['SEOJCC']][rx['OPC'][0]['EPC']][1](rx['OPC'][0]['EDT'])
-            e = eval(EPC_CODE[edt['eojgc']][edt['eojcc']]['class'])(node['server'][0], edt['eojci'])
-            print('ECHONET lite node discovered at {} - {} class'.format(node['server'][0], EOJX_CLASS[edt['eojgc']][edt['eojcc']]))
-            if echonet_class != "":
-                if echonet_class == EOJX_CLASS[edt['eojgc']][edt['eojcc']] or echonet_class == "":
-                    eoa.append(e)
-            else:
-                eoa.append(e)
+          
+            for instance in edt:
+                try:
+                    e = eval(EPC_CODE[instance['eojgc']][instance['eojcc']]['class'])(node['server'][0], instance['eojci'])
+                    print('Supported instance discovered at {} - {} class'.format(node['server'][0], EOJX_CLASS[instance['eojgc']][instance['eojcc']]))
+                    if echonet_class != "":
+                        if echonet_class == EOJX_CLASS[instance['eojgc']][instance['eojcc']] or echonet_class == "":
+                            eoa.append(e)
+                    else:
+                        eoa.append(e)
+                except KeyError as e:
+                    pass
 
     return eoa
 
@@ -385,6 +390,35 @@ class EchoNetNode:
             return self.propertyMaps['getProperties']
         else:
             return {}
+
+class HomeSolarPower(EchoNetNode):
+    def __init__(self, netif, instance = 0x1):
+        EchoNetNode.__init__(self, instance, netif)
+        self.eojgc = 0x02
+        self.eojcc = 0x79
+        self.available_functions = EPC_CODE[self.eojgc][self.eojcc]['functions']
+        self.propertyMaps = getAllPropertyMaps(self.netif, self.eojgc, self.eojcc , self.instance)
+   
+    def getMeasuredInstantPower(self):
+        return self.getMessage(0xE0)
+
+    def getMeasuredCumulPower(self):
+        return self.getMessage(0xE1)
+
+class StorageBattery(EchoNetNode):
+    def __init__(self, netif, instance = 0x1):
+        EchoNetNode.__init__(self, instance, netif)
+        self.eojgc = 0x02
+        self.eojcc = 0x7d
+        self.available_functions = EPC_CODE[self.eojgc][self.eojcc]['functions']
+        self.propertyMaps = getAllPropertyMaps(self.netif, self.eojgc, self.eojcc , self.instance)
+   
+    def getRemainingStoredElectricity3(self):
+        return self.getMessage(0xE4)
+
+    def getWorkingOperationStatus(self):
+        return self.getMessage(0xcf)
+
 
 """Class for Home AirConditioner Objects"""
 class HomeAirConditioner(EchoNetNode):
